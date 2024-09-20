@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Juego de Triqui</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        #board {
+            margin: 20px auto;
+            width: 300px;
+            height: 300px;
+            display: grid;
+            grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+            gap: 5px;
+        }
+        .cell {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            font-size: 60px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #555;
+        }
+        #restart {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Juego de Triqui</h1>
+<div id="board"></div>
+<div id="message"></div>
+<button id="restart">Reiniciar Juego</button>
+
+<script>
+    const boardElement = document.getElementById('board');
+    const messageElement = document.getElementById('message');
+    const restartButton = document.getElementById('restart');
+
+    let board = [
+        ['', '', ''],
+        ['', '', ''],
+        ['', '', '']
+    ];
+
+    const human = 'O';
+    const ai = 'X';
+    let currentPlayer = human;
+    let gameOver = false;
+
+    function startGame() {
+        board = [
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', '']
+        ];
+        currentPlayer = human;
+        gameOver = false;
+        messageElement.textContent = '';
+        renderBoard();
+    }
+
+    function renderBoard() {
+        boardElement.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const cellElement = document.createElement('div');
+                cellElement.classList.add('cell');
+                cellElement.dataset.row = i;
+                cellElement.dataset.col = j;
+                cellElement.textContent = board[i][j];
+                cellElement.addEventListener('click', onCellClick);
+                boardElement.appendChild(cellElement);
+            }
+        }
+    }
+
+    function onCellClick(e) {
+        const row = e.target.dataset.row;
+        const col = e.target.dataset.col;
+        if (board[row][col] === '' && !gameOver) {
+            board[row][col] = human;
+            renderBoard();
+            if (checkWinner(board, human)) {
+                messageElement.textContent = '¡Has ganado!';
+                gameOver = true;
+            } else if (isTie(board)) {
+                messageElement.textContent = '¡Es un empate!';
+                gameOver = true;
+            } else {
+                currentPlayer = ai;
+                bestMove();
+            }
+        }
+    }
+
+    function bestMove() {
+        let bestScore = -Infinity;
+        let move;
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (board[i][j] === '') {
+                    board[i][j] = ai;
+                    let score = minimax(board, 0, false);
+                    board[i][j] = '';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = { i, j };
+                    }
+                }
+            }
+        }
+        board[move.i][move.j] = ai;
+        renderBoard();
+        if (checkWinner(board, ai)) {
+            messageElement.textContent = '¡Has perdido!';
+            gameOver = true;
+        } else if (isTie(board)) {
+            messageElement.textContent = '¡Es un empate!';
+            gameOver = true;
+        }
+        currentPlayer = human;
+    }
+
+    function minimax(board, depth, isMaximizing) {
+        if (checkWinner(board, ai)) {
+            return 10 - depth;
+        } else if (checkWinner(board, human)) {
+            return depth - 10;
+        } else if (isTie(board)) {
+            return 0;
+        }
+
+        if (isMaximizing) {
+            let bestScore = -Infinity;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (board[i][j] === '') {
+                        board[i][j] = ai;
+                        let score = minimax(board, depth + 1, false);
+                        board[i][j] = '';
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+            }
+            return bestScore;
+        } else {
+            let bestScore = Infinity;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (board[i][j] === '') {
+                        board[i][j] = human;
+                        let score = minimax(board, depth + 1, true);
+                        board[i][j] = '';
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+            }
+            return bestScore;
+        }
+    }
+
+    function checkWinner(board, player) {
+        // Comprobar filas y columnas
+        for (let i = 0; i < 3; i++) {
+            if (board[i][0] === player && board[i][1] === player && board[i][2] === player)
+                return true;
+            if (board[0][i] === player && board[1][i] === player && board[2][i] === player)
+                return true;
+        }
+        // Comprobar diagonales
+        if (board[0][0] === player && board[1][1] === player && board[2][2] === player)
+            return true;
+        if (board[0][2] === player && board[1][1] === player && board[2][0] === player)
+            return true;
+        return false;
+    }
+
+    function isTie(board) {
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (board[i][j] === '') {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    restartButton.addEventListener('click', startGame);
+
+    startGame();
+</script>
+
+</body>
+</html>
